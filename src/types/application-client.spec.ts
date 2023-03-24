@@ -1,5 +1,5 @@
 import { describe, test } from '@jest/globals'
-import { ABIMethod, ABIStringType, getApplicationAddress } from 'algosdk'
+import { ABIMethod, ABIStringType, AtomicTransactionComposer, getApplicationAddress, makeBasicAccountTransactionSigner } from 'algosdk'
 import invariant from 'tiny-invariant'
 import * as algokit from '../'
 import { getBareCallContractData } from '../../tests/example-contracts/bare-call/contract'
@@ -163,5 +163,45 @@ describe('application-client', () => {
     const methodSelector = new ABIMethod(client.getABIMethod('call_txn')!).getSelector()
     const methodArg = new ABIStringType().encode('test')
     expect(call.transaction.appArgs).toEqual([methodSelector, methodArg])
+
+    const atc = new AtomicTransactionComposer()
+    const txn2 = await algokit.transferAlgos(
+      {
+        from: testAccount,
+        to: testAccount.addr,
+        amount: algokit.microAlgos(1),
+        skipSending: true,
+      },
+      algod,
+    )
+    atc.addMethodCall({
+      appID: (await client.getAppReference()).appId,
+      method: new ABIMethod(client.getABIMethod('call_txn')!),
+      methodArgs: [{ txn: txn2.transaction, signer: makeBasicAccountTransactionSigner(testAccount) }, 'test'],
+      sender: testAccount.addr,
+      signer: makeBasicAccountTransactionSigner(testAccount),
+      suggestedParams: await algod.getTransactionParams().do(),
+    })
+    // THIS WORKS!
+    const x = await atc.execute(algod, 5)
+
+    // *********************************************
+    // Now let's check the transaction can get sent!
+    // *********************************************
+
+    // THIS DOESNT! WHY????
+    const result = await algokit.sendGroupOfTransactions(
+      {
+        transactions: [txn.transaction, call.transaction],
+        signer: testAccount,
+      },
+      algod,
+    )
+
+    invariant(result.confirmations)
+    invariant(result.confirmations[1])
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const returnValue = algokit.getABIReturn({ method: client.getABIMethod('call_txn')!, args: [] }, result.confirmations[1])
+    expect(returnValue?.returnValue).toBe('a')
   })
 })
