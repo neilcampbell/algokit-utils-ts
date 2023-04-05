@@ -2,8 +2,6 @@ import type algosdk from 'algosdk'
 
 const LOGIC_ERROR = /TransactionPool.Remember: transaction ([A-Z0-9]+): logic eval error: (.*). Details: pc=([0-9]+), opcodes=.*/
 
-// todo: jsdoc comments
-
 /**
  * Details about a smart contract logic error
  */

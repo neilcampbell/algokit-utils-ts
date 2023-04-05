@@ -1,5 +1,7 @@
 import { ABIContractParams, ABIMethod, ABIMethodParams } from 'algosdk'
 
+// todo
+
 export interface AppSpec {
   hints: HintSpec
   schema: SchemaSpec

@@ -151,6 +151,18 @@ describe('application-client', () => {
     const methodSelector = new ABIMethod(client.getABIMethodParams('call_abi_txn')!).getSelector()
     const methodArg = new ABIStringType().encode('test')
     expect(call.transaction.appArgs).toEqual([methodSelector, methodArg])
+
+    const result = await client.call({
+      method: 'call_abi_txn',
+      methodArgs: { args: [txn.transaction, 'test'] },
+    })
+
+    invariant(result.confirmations)
+    invariant(result.confirmations[1])
+    expect(result.transactions.length).toBe(2)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const returnValue = algokit.getABIReturn({ method: client.getABIMethod('call_abi_txn')!, args: [] }, result.confirmations[1])
+    expect(returnValue?.returnValue).toBe('Sent . test')
   })
 
   test('Display nice error messages when there is a logic error', async () => {
